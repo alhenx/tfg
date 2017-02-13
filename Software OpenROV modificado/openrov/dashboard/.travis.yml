@@ -1,0 +1,25 @@
+language: node_js
+node_js:
+  - 0.10
+env:
+  global:
+  - VERSION_NUMBER="`git describe --tags | sed 's/^[a-z,A-Z]*//'`"
+  - REAL_GIT_BRANCH="`git for-each-ref --format='%(objectname) %(refname:short)' refs/heads
+    | grep $TRAVIS_COMMIT | awk '{print $2}'`"
+after_success:
+- echo version_number $VERSION_NUMBER
+- echo real_get_branch $REAL_GIT_BRANCH
+- mkdir build
+- 'fpm -f -m info@openrov.com -s dir -t deb -a all -n openrov-dashboard -v
+  $VERSION_NUMBER-$REAL_GIT_BRANCH --description ''OpenROV Dashboard'' .=/opt/openrov/dashboard '
+- cp *.deb build/openrov-dashboard_latest-${REAL_GIT_BRANCH}_all.deb
+- mv *.deb build/
+
+before_script: ./node_modules/bower/bin/bower install -F
+
+script: npm test
+
+before_install:
+  - export CHROME_BIN=chromium-browser
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start

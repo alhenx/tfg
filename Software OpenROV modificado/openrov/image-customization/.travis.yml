@@ -1,0 +1,67 @@
+language: python
+install: gem install fpm
+script:
+- echo version_number $VERSION_NUMBER
+- echo real_get_branch $REAL_GIT_BRANCH
+- rm -rf OpenROV/build-*
+- 'fpm -f -m info@openrov.com -s dir -t deb -a armhf -n openrov-image-customization
+  -d python-software-properties
+  -d python-configobj
+  -d python-jinja2
+  -d python-serial
+  -d gcc
+  -d g++
+  -d make
+  -d picocom
+  -d zip
+  -d unzip
+  -d vim
+  -d avr-libc
+  -d arduino-core
+  -d automake
+  -d byacc
+  -d binutils-avr
+  -d bison
+  -d flex
+  -d autoconf
+  -d curl
+  -d nodejs
+  -d c9-core-installer
+  -d device-tree-compiler
+  -d avahi-daemon
+  -v $VERSION_NUMBER~$BUILD_NUMBER.`git rev-parse --short HEAD` --description ''OpenROV
+  Debian Image Customizations'' --after-install=./afterinstall.sh --before-install=./beforeinstall.sh .=/opt/openrov/image-customization '
+- mkdir build
+- DEBFILE="`ls *.deb`"
+- cp *.deb build/openrov-customization_latest-${REAL_GIT_BRANCH}_armhf.deb
+- mv *.deb build/
+env:
+  global:
+  - VERSION_NUMBER="`cat package.json | grep version | grep -o '[0-9]*\.[0-9]*\.[0-9]\+'`"
+  - BUILD_NUMBER=$TRAVIS_BUILD_NUMBER
+  - secure: P4i5RD2+chpGAPtkn1JYChOc+TVEHdHVVWA40uVAaHqRGm0I/kAvA2i4xXun0VAFFJJjQgC7BSdzQs9kP6IVu4x7VVXyOt3OYMql8ehsH6LU3Q476Rb+HIOzX30qYx+7F+cHUPFp/BTiyEJ+IOjU6sDTWLmSDpjUvVD2Tzg+PLI=
+  - REAL_GIT_BRANCH="`git for-each-ref --format='%(objectname) %(refname:short)' refs/heads
+    | grep $TRAVIS_COMMIT | awk '{print $2}'`"
+deploy:
+  provider: s3
+  access_key_id: AKIAJKNIJLOOMHLYCOOA
+  secret_access_key:
+    secure: Tl1guL38DRgU19gDVF2vddOENPJXgs8cA7ga8fH+q8l5uSCATvJkFnVdrTYNxH4MLEPhEVpL7BlWOCIbHjPN24rWj45fSpwfKeHrQRSqw7gGP7saPJf0NPZ20cGRWlYEM1PuEv3Aq1Muu0vrpbA6CvyCDSe7RojsL7hqMSFffwA=
+  bucket: openrov-software-nightlies
+  skip_cleanup: true
+  region: us-west-2
+  endpoint: bucket-name.s3-website-us-west-2.amazonaws.com
+  local-dir: build
+  upload-dir: jessie/image-customization
+  acl: public_read
+  on:
+    repo: OpenROV/openrov-image-customization
+    all_branches: true
+    condition: "($REAL_GIT_BRANCH = jessie)"
+notifications:
+  webhooks:
+    urls:
+    - https://webhooks.gitter.im/e/75083394acfa5b6df091
+    on_success: change
+    on_failure: always
+    on_start: false

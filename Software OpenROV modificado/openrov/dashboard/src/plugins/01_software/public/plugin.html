@@ -1,0 +1,161 @@
+<div>
+  <div class="row">
+    <div class="col-sm-12">
+      <h2>Currently installed software versions</h2>
+    </div>
+  </div>
+  <form class="form-inline" role="form">
+    <div class="container">
+      <div class="row" ng-hide="!isAdvancedMode">
+        <div class="col-sm-12">
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" ng-model="showIndividualPackages"> Show individual packages
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-sm-12">
+          Current branch:
+          <span ng-hide="isAdvancedMode">{{ selectedBranch }}</span>
+          <select class="form-control" id="branches"
+                  ng-model="selectedBranch"
+                  ng-options="branch for branch in branches"
+                  ng-hide="!isAdvancedMode">
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="coll-sm-12 top-buffer-5">
+        <ul class="package-list" cg-busy="loadingInstalled">
+          <li ng-repeat="item in installedSoftware">
+            {{ item.package }} - {{ item.version }}
+          </li>
+          <li ng-hide="!(installedSoftware.length == 0)">
+            No packages found
+          </li>
+        </ul>
+      </div>
+      <div class="alert alert-danger" role="alert" ng-hide="!(loadPackagesError)"><strong>Uh, there was a problem loading the installed packages!</strong><br>{{ loadPackagesError }}</div>
+    </div>
+  </form>
+</div>
+<div>
+
+  <h2>Updates</h2>
+
+  <div class="row" ng-hide="updatesEnabled">
+    <div class="form-group col-sm-12">
+      <button ng-click="enableUpdate()" class="btn btn-success">Enable software updates</button>
+    </div>
+  </div>
+
+  <div class="row" ng-hide="!updatesEnabled">
+    <form class="form-horizontal">
+      <div class="col-sm-12">
+        <div cg-busy="loadingPackages">
+
+          <div class="row" ng-hide="!isAdvancedMode">
+            <div class="col-sm-4">
+              <button class="btn btn-default" ng-click="toggleShowUpdates()" ng-class="{'btn-primary': showUpdates}">Updates</button>
+              <button class="btn btn-default" ng-click="toggleShowUpdates()" ng-class="{'btn-primary': !showUpdates}">Other versions</button>
+            </div>
+          </div>
+
+          <!--Updates-->
+          <div class="row top-buffer-5" ng-hide="!showUpdates">
+            <div class="col-sm-12 package-list" ng-hide="latestVersions.length === 0">
+              <ul id="softwareList" >
+                <li ng-repeat="item in latestVersions">
+                  {{ item.package }} - {{ item.version }}
+                  <button type="button" class="btn btn-primary btn-xs" ng-hide="!updatesEnabled" ng-click="install(item)">Install</button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <!--Previous versions-->
+          <div class="row top-buffer-5" ng-hide="showUpdates">
+            <div class="col-sm-12 package-list" ng-hide="previousVersions.length === 0">
+              <ul id="prviousSoftwareList" >
+                <li ng-repeat="item in previousVersions">
+                  {{ item.package }} - {{ item.version }}
+                  <button type="button" class="btn btn-primary btn-xs" ng-hide="!updatesEnabled" ng-click="install(item)">Install</button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div ng-hide="latestVersions.length != 0 || refreshingPackages || !showUpdates">
+            Your ROV is up to date!
+            <br>
+            <br>
+          </div>
+          <button class="btn btn-md" ng-click="refreshPackages()" ng-disabled="refreshingPackages">
+            <span class="glyphicon glyphicon-refresh" ng-class="{'glyphicon-refresh-animate' : refreshingPackages}"></span>
+            Refresh
+          </button>
+          <strong>Last update: </strong>{{ aptUpdateRefreshDate }}
+          <div class="alert alert-danger" role="alert" ng-hide="!refreshingPackagesError"><strong>Uh, there was a problem updating the packages!</strong><br><div ng-bind-html="refreshingPackagesError"></div></div>
+
+        </div>
+      </div>
+    </form>
+  </div>
+  <br>
+  <div class="row" ng-hide="!updatesEnabled">
+    <div class="col-sm-12" ng-hide="!showInstallResult">
+      <div>
+        <div><h4>Install result:</h4></div>
+      </div>
+      <button class="btn btn-sm" ng-click="refreshPackages()" ng-hide="!installingPackage">
+        <span class="glyphicon glyphicon-refresh" ng-class="{'glyphicon-refresh-animate' : installingPackage}"></span>
+        Installing </button>
+      <br>
+      <div class="alert alert-danger" role="alert" ng-hide="!installError"><strong>Uh, there was a problem Installing the package!</strong><br><div ng-bind-html="installErrorData"></div></div>
+      <div class="form-group">
+        <div>
+          <div id="installResult">
+            <ul class="list-unstyled">
+              <li ng-repeat="item in installResult.data track by $index">
+                {{ item }}
+              </li>
+            </ul>
+            <div class="alert alert-success" role="alert" ng-hide="!installResult.success">Install successfull!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row top-buffer-10" ng-hide="!updatesEnabled">
+    <div class="col-sm-12"  ng-hide="isAdvancedMode">
+      <button class="btn btn-default btn-md" ng-click="enableAdvanced()">
+        Enable advanced mode </button>
+      <br><i>(Enable to install previous versions and install individual packages)</i>
+    </div>
+  </div>
+
+</div>
+
+<script type="text/ng-template" id="modalAgreement.html">
+    <div class="modal-header"><h3>Software update agreement</h3></div>
+    <div class="modal-body">
+      <strong>Thanks for using OpenROV!</strong><br>
+      To enable software updates, we would like to collect some information about your ROV.
+      This consists of:<br>
+      <ul>
+        <li>the serial number of your Beagle Bone ({{ config.bbSerial }})</li>
+        <li>the list of the software and their versions that are installed on your ROV</li>
+        <li>Your location in the world supplied by your browser via geolocation</li>
+        <li>The IP Address through which your computer is connected to the internet</li>
+      </ul>
+      <br>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" ng-click="ok()">Yes, that's fine</button>
+      <button class="btn" ng-click="cancel()">No, thanks</button>
+    </div>
+</script>
